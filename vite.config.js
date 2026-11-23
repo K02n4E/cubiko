@@ -13,8 +13,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'], navigateFallback: 'index.html' },
       manifest: {
-        name: 'CubeLab – 3x3 Speedcubing Practice',
-        short_name: 'CubeLab',
+        name: 'Cubiko – 3x3 Speedcubing Practice',
+        short_name: 'Cubiko',
         description: 'Speedcubing timer, bot races and solve statistics. Works offline.',
         start_url: './',
         scope: './',
