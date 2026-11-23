@@ -1,4 +1,4 @@
-# CubeLab (React + PWA)
+# Cubiko (React)
 
 3x3 speedcubing timer, bot races and solve statistics. Same layout and look as CubeLab v5, rebuilt with React and Vite, installable as an offline app.
 
