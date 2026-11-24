@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Seg } from '../components/Controls';
 import CubeNet from '../components/CubeNet';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SolveDetail from '../components/SolveDetail';
@@ -14,7 +16,7 @@ import { confetti } from '../lib/confetti';
 import { playFanfare } from '../lib/audio';
 
 export function statEntries(solves) {
-  return [['Best', format(best(solves)), true], ['Mean', format(mean(solves))], ['Ao5', format(average(solves, 5))], ['Ao12', format(average(solves, 12))], ['Ao100', format(average(solves, 100))], ['Total solves', solves.length]];
+  return [['Best', format(best(solves)), true], ['Mean', format(mean(solves))], ['Ao5', format(average(solves, 5))], ['Ao12', format(average(solves, 12))], ['Ao100', format(average(solves, 100))], ['Solves', solves.length]];
 }
 const PenaltyTag = ({ p }) => p === '+2' ? <span className="tag p2">+2</span> : p === 'dnf' ? <span className="tag dnf">DNF</span> : <span className="none">–</span>;
 const isTyping = t => /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName) || t?.isContentEditable;
@@ -52,6 +54,22 @@ export default function TimerPage() {
   const clockClass = { running: 'run', holding: 'ready', armed: 'ready', inspection: 'insp' }[timer.phase] || flash;
   const modalOpen = detailId !== null || pendingDelete !== null;
 
+  // Full-screen tap target while inspecting / solving: tap anywhere to stop. It lingers briefly (invisible)
+  // after a stop so the tap that stopped the timer can't land on a button underneath.
+  const overlayOn = ['inspection', 'armed', 'running'].includes(timer.phase);
+  const [overlayLingers, setOverlayLingers] = useState(false);
+  useEffect(() => {
+    if (overlayOn) { setOverlayLingers(true); return undefined; }
+    const t = setTimeout(() => setOverlayLingers(false), 300);
+    return () => clearTimeout(t);
+  }, [overlayOn]);
+
+  // Phone layout: Timer and History are two swipeable panes
+  const panesRef = useRef(null);
+  const [pane, setPane] = useState(0);
+  const onPanesScroll = e => { const el = e.currentTarget, i = Math.round(el.scrollLeft / (el.clientWidth || 1)); setPane(p => (p === i ? p : i)); };
+  const goPane = i => { setPane(i); const el = panesRef.current; el?.scrollTo?.({ left: i * el.clientWidth, behavior: 'smooth' }); };
+
   const detailIndex = detailId ? solves.findIndex(s => s.id === detailId) : -1;
   useEffect(() => { if (detailId && detailIndex < 0) setDetailId(null); }, [detailId, detailIndex]);
 
@@ -84,7 +102,12 @@ export default function TimerPage() {
   const rows = useMemo(() => solves.slice(-50).reverse().map((solve, i) => ({ solve, number: solves.length - i })), [solves]);
 
   return (
-    <section className="page on" id="timer">
+    <section className="page on timer-page" id="timer">
+      <div className="pane-tabs">
+        <Seg label="Section" value={pane} options={[[0, 'Timer'], [1, `History (${solves.length})`]]} onChange={goPane} />
+      </div>
+      <div className="timer-panes" ref={panesRef} onScroll={onPanesScroll}>
+      <div className="pane pane-timer">
       <div className="scramble">
         <div className="scr-text">
           <p id="scr">{scramble}</p>
@@ -96,7 +119,7 @@ export default function TimerPage() {
       </div>
 
       <div className="stage" id="stage" tabIndex={0} aria-label="Timer. Press space to start and stop."
-        onPointerDown={e => { e.preventDefault(); setFlash(''); timer.press(); }} onPointerUp={timer.release} onPointerCancel={timer.release}>
+        onPointerDown={e => { e.preventDefault(); setFlash(''); timer.press(); }} onPointerUp={timer.release} onPointerCancel={timer.abort}>
         <div id="clock" className={clockClass} style={{ fontSize: SIZES[settings.size] || undefined }}>{clockText}</div>
       </div>
 
@@ -108,6 +131,8 @@ export default function TimerPage() {
 
       <StatsStrip entries={statEntries(solves)} />
 
+      </div>
+      <div className="pane pane-history">
       <h2>Solve history <span className="h2-hint">Tap a solve for details</span></h2>
       <div className="tw tall">
         <table>
@@ -131,6 +156,16 @@ export default function TimerPage() {
           </tbody>
         </table>
       </div>
+      </div>
+      </div>
+
+      {(overlayOn || overlayLingers) && createPortal(
+        <div className={`run-overlay ${overlayOn ? '' : 'ghost'}`} role="button" aria-label="Tap anywhere to stop the timer"
+          onPointerDown={e => { e.preventDefault(); if (!overlayOn) return; setFlash(''); timer.press(); }}
+          onPointerUp={timer.release} onPointerCancel={timer.abort}>
+          <div className={`run-clock ${clockClass}`} style={{ fontSize: SIZES[settings.size] || undefined }}>{timer.display}</div>
+          <p className="run-hint">{timer.phase === 'inspection' ? 'Touch and hold, release to start' : timer.phase === 'armed' ? 'Release to start' : ''}</p>
+        </div>, document.body)}
 
       {detailIndex >= 0 && (
         <SolveDetail solves={solves} index={detailIndex}

@@ -155,7 +155,7 @@ export default function RacePage() {
 
           <div className="race-timers">
             <div className={`race-timer-card player-card ${playerActive && !match.matchOver ? 'active' : ''}`} tabIndex={0} role="button" aria-label="Your timer. Hold and release Space to start, press to stop."
-              onPointerDown={e => { e.preventDefault(); race.press(); }} onPointerUp={race.release} onPointerCancel={race.release}>
+              onPointerDown={e => { e.preventDefault(); race.press(); }} onPointerUp={race.release} onPointerCancel={race.abort}>
               <div className="race-timer-label">You</div>
               <div className={`race-timer-value ${playerClass}`}>{display}</div>
               <p>{instruction}</p>

@@ -14,7 +14,7 @@ export function useSolveTimer(options) {
   const [phase, setPhaseState] = useState('idle');
   const [display, setDisplay] = useState('0.00');
   const ph = useRef('idle');
-  const r = useRef({ start: 0, raf: 0, interval: 0, left: 15, penalty: false });
+  const r = useRef({ start: 0, raf: 0, interval: 0, left: 15, penalty: false, prev: 'idle' });
 
   const api = useMemo(() => {
     const setPhase = p => { ph.current = p; setPhaseState(p); };
@@ -54,13 +54,19 @@ export function useSolveTimer(options) {
       press() {
         const p = ph.current;
         if (p === 'running') stop();
-        else if (p === 'idle' || p === 'stopped') setPhase('holding');
+        else if (p === 'idle' || p === 'stopped') { r.current.prev = p; setPhase('holding'); }
         else if (p === 'inspection') setPhase('armed');
       },
       release() {
         const p = ph.current;
         if (p === 'holding') { if (opts.current.inspection) beginInspection(); else startSolve(); }
         else if (p === 'armed') { clearInterval(r.current.interval); startSolve(); }
+      },
+      /** The browser took over the touch (e.g. a swipe): undo a press without starting anything. */
+      abort() {
+        const p = ph.current;
+        if (p === 'holding') setPhase(r.current.prev || 'idle');
+        else if (p === 'armed') setPhase('inspection');
       },
       beginInspection,
       /** Abort whatever is happening and go back to idle. */

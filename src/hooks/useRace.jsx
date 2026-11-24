@@ -125,7 +125,7 @@ export function RaceProvider({ children }) {
   const value = {
     match, phase: timer.phase, display: timer.display,
     canStart: match.active && !match.matchOver && !match.awaiting && !match.popup && (timer.phase === 'idle' || timer.phase === 'stopped'),
-    startMatch, resetMatch, beginRound, press, release, cancelAttempt, closePopup
+    startMatch, resetMatch, beginRound, press, release, abort: timer.abort, cancelAttempt, closePopup
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

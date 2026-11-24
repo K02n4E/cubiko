@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Toast from './components/Toast';
+import TopBar from './components/TopBar';
 import { RaceProvider } from './hooks/useRace';
 import { SettingsProvider } from './hooks/useSettings';
 import { SolvesProvider } from './hooks/useSolves';
@@ -21,8 +22,9 @@ function Shell() {
   const Page = PAGES[page];
   return (
     <>
+      <TopBar />
       <Sidebar page={page} />
-      <main className="main" id="main" ref={main}><Page /></main>
+      <main className={`main ${page === 'timer' ? 'main--timer' : ''}`} id="main" ref={main}><Page /></main>
       <Toast />
     </>
   );
